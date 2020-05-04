@@ -16,6 +16,7 @@
  */
 package org.apache.dubbo.registry.multiple;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.dubbo.common.URL;
 import org.apache.dubbo.common.utils.NetUtils;
 import org.apache.dubbo.registry.NotifyListener;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import redis.embedded.RedisServer;
+import redis.embedded.RedisServerBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +68,12 @@ public class MultipleRegistry2S2RTest {
         zookeeperRegistryURLStr = "zookeeper://127.0.0.1:" + zkServerPort;
 
         redisServerPort = NetUtils.getAvailablePort();
-        redisServer = new RedisServer(redisServerPort);
+        RedisServerBuilder builder = RedisServer.builder().port(redisServerPort);
+        if (SystemUtils.IS_OS_WINDOWS) {
+            // set maxheap to fix Windows error 0x70 while starting redis
+            builder.setting("maxheap 128mb");
+        }
+        redisServer = builder.build();
         redisServer.start();
         redisRegistryURLStr = "redis://127.0.0.1:" + redisServerPort;
 
@@ -91,25 +98,25 @@ public class MultipleRegistry2S2RTest {
     @Test
     public void testParamConfig() {
 
-        Assertions.assertTrue(multipleRegistry.origReferenceRegistryURLs.size() == 2);
+        Assertions.assertEquals(2, multipleRegistry.origReferenceRegistryURLs.size());
         Assertions.assertTrue(multipleRegistry.origReferenceRegistryURLs.contains(zookeeperRegistryURLStr));
         Assertions.assertTrue(multipleRegistry.origReferenceRegistryURLs.contains(redisRegistryURLStr));
 
-        Assertions.assertTrue(multipleRegistry.origServiceRegistryURLs.size() == 2);
+        Assertions.assertEquals(2, multipleRegistry.origServiceRegistryURLs.size());
         Assertions.assertTrue(multipleRegistry.origServiceRegistryURLs.contains(zookeeperRegistryURLStr));
         Assertions.assertTrue(multipleRegistry.origServiceRegistryURLs.contains(redisRegistryURLStr));
 
-        Assertions.assertTrue(multipleRegistry.effectReferenceRegistryURLs.size() == 2);
+        Assertions.assertEquals(2, multipleRegistry.effectReferenceRegistryURLs.size());
         Assertions.assertTrue(multipleRegistry.effectReferenceRegistryURLs.contains(zookeeperRegistryURLStr));
         Assertions.assertTrue(multipleRegistry.effectReferenceRegistryURLs.contains(redisRegistryURLStr));
 
-        Assertions.assertTrue(multipleRegistry.effectServiceRegistryURLs.size() == 2);
+        Assertions.assertEquals(2, multipleRegistry.effectServiceRegistryURLs.size());
         Assertions.assertTrue(multipleRegistry.effectServiceRegistryURLs.contains(zookeeperRegistryURLStr));
         Assertions.assertTrue(multipleRegistry.effectServiceRegistryURLs.contains(redisRegistryURLStr));
 
         Assertions.assertTrue(multipleRegistry.getServiceRegistries().containsKey(zookeeperRegistryURLStr));
         Assertions.assertTrue(multipleRegistry.getServiceRegistries().containsKey(redisRegistryURLStr));
-        Assertions.assertTrue(multipleRegistry.getServiceRegistries().values().size() == 2);
+        Assertions.assertEquals(2, multipleRegistry.getServiceRegistries().values().size());
 //        java.util.Iterator<Registry> registryIterable = multipleRegistry.getServiceRegistries().values().iterator();
 //        Registry firstRegistry = registryIterable.next();
 //        Registry secondRegistry = registryIterable.next();
@@ -152,14 +159,14 @@ public class MultipleRegistry2S2RTest {
             }
         });
         Thread.sleep(1500);
-        Assertions.assertTrue(list.size() == 2);
+        Assertions.assertEquals(2, list.size());
 
         multipleRegistry.unregister(serviceUrl);
         Thread.sleep(1500);
-        Assertions.assertTrue(list.size() == 1);
+        Assertions.assertEquals(1, list.size());
         List<URL> urls = MultipleRegistryTestUtil.getProviderURLsFromNotifyURLS(list);
-        Assertions.assertTrue(list.size() == 1);
-        Assertions.assertTrue("empty".equals(list.get(0).getProtocol()));
+        Assertions.assertEquals(1, list.size());
+        Assertions.assertEquals("empty", list.get(0).getProtocol());
     }
 
     @Test
@@ -185,22 +192,22 @@ public class MultipleRegistry2S2RTest {
             }
         });
         Thread.sleep(1500);
-        Assertions.assertTrue(list.size() == 2);
+        Assertions.assertEquals(2, list.size());
 
         List<Registry> serviceRegistries = new ArrayList<Registry>(multipleRegistry.getServiceRegistries().values());
         serviceRegistries.get(0).unregister(serviceUrl);
         Thread.sleep(1500);
-        Assertions.assertTrue(list.size() == 1);
+        Assertions.assertEquals(1, list.size());
         List<URL> urls = MultipleRegistryTestUtil.getProviderURLsFromNotifyURLS(list);
-        Assertions.assertTrue(list.size() == 1);
+        Assertions.assertEquals(1, list.size());
         Assertions.assertTrue(!"empty".equals(list.get(0).getProtocol()));
 
         serviceRegistries.get(1).unregister(serviceUrl);
         Thread.sleep(1500);
-        Assertions.assertTrue(list.size() == 1);
+        Assertions.assertEquals(1, list.size());
         urls = MultipleRegistryTestUtil.getProviderURLsFromNotifyURLS(list);
-        Assertions.assertTrue(list.size() == 1);
-        Assertions.assertTrue("empty".equals(list.get(0).getProtocol()));
+        Assertions.assertEquals(1, list.size());
+        Assertions.assertEquals("empty", list.get(0).getProtocol());
     }
 
 }
